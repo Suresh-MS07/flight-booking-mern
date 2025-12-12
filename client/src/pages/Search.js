@@ -17,7 +17,7 @@ const Search = () => {
   useEffect(() => {
     const fetchFlights = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/flights/search?from=${from}&to=${to}&date=${date}`);
+        const response = await fetch(`https://flight-api-suresh.onrender.com/api/flights/search?from=${from}&to=${to}&date=${date}`);
         const data = await response.json();
 
         if (response.ok) {

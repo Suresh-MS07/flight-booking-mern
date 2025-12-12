@@ -72,7 +72,7 @@ const Booking = () => {
 
     try {
       // 2. Order Create (Backend)
-      const orderRes = await fetch('http://localhost:5000/api/payment/orders', {
+      const orderRes = await fetch('https://flight-api-suresh.onrender.com/api/payment/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount: price })
@@ -92,7 +92,7 @@ const Booking = () => {
         
         // 4. Success Handler
         handler: async function (response) {
-          const verifyRes = await fetch('http://localhost:5000/api/payment/verify', {
+          const verifyRes = await fetch('https://flight-api-suresh.onrender.com/api/payment/verify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -144,7 +144,7 @@ const Booking = () => {
       }
     };
 
-    const response = await fetch('http://localhost:5000/api/bookings', {
+    const response = await fetch('https://flight-api-suresh.onrender.com/api/bookings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(bookingData)
