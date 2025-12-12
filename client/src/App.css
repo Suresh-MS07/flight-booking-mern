@@ -1,0 +1,480 @@
+:root {
+  --primary-color: #008cff; /* MakeMyTrip Blue */
+  --secondary-color: #eb2026; /* Warning Red */
+  --text-dark: #000000;
+  --text-light: #4a4a4a;
+  --bg-grey: #f2f2f2;
+}
+
+body {
+  font-family: 'Lato', sans-serif;
+  background-color: var(--bg-grey);
+  color: var(--text-dark);
+}
+
+h1, h2, h3, h4, h5, h6, .navbar-brand {
+  font-family: 'Montserrat', sans-serif;
+}
+
+/* --- Navbar Styles --- */
+.custom-navbar {
+  background: white !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  padding: 10px 0;
+}
+
+.brand-logo {
+  font-weight: 800;
+  font-size: 1.5rem;
+  background: -webkit-linear-gradient(45deg, #008cff, #0055ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.nav-link {
+  font-weight: 600;
+  color: #4a4a4a !important;
+  margin-left: 20px;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+}
+
+.nav-link:hover {
+  color: var(--primary-color) !important;
+}
+
+/* --- Hero Section & Widget --- */
+.hero-container {
+  background: linear-gradient(to right, #0f2027, #203a43, #2c5364); /* Premium Dark Gradient */
+  min-height: 350px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  margin-bottom: 100px; /* Jagah di widget ke liye */
+}
+
+.search-widget {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  position: absolute;
+  bottom: -60px; /* Banner se neeche latakta hua */
+  width: 90%;
+  max-width: 1100px;
+}
+
+/* Custom Input Boxes (MMT Style) */
+.input-box {
+  border: 1px solid #e7e7e7;
+  border-radius: 8px;
+  padding: 10px 15px;
+  transition: all 0.3s;
+  cursor: pointer;
+}
+
+.input-box:hover, .input-box:focus-within {
+  background: #eaf5ff; /* Light Blue on Hover */
+  border-color: var(--primary-color);
+}
+
+.input-label {
+  font-size: 0.8rem;
+  color: #777;
+  text-transform: uppercase;
+  margin-bottom: 0;
+  font-weight: 700;
+}
+
+.custom-input {
+  border: none;
+  background: transparent;
+  font-size: 1.4rem;
+  font-weight: 700;
+  width: 100%;
+  outline: none;
+  color: var(--text-dark);
+}
+
+.search-btn {
+  background: linear-gradient(90deg, #008cff 0%, #0055ff 100%);
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 700;
+  border-radius: 30px;
+  padding: 12px 50px;
+  border: none;
+  text-transform: uppercase;
+  box-shadow: 0 4px 15px rgba(0, 140, 255, 0.4);
+  position: absolute;
+  bottom: -25px; /* Box ke bhi neeche */
+  left: 50%;
+  transform: translateX(-50%);
+  transition: transform 0.2s;
+}
+
+.search-btn:hover {
+  transform: translateX(-50%) scale(1.05);
+}
+
+/* --- Flight Cards (Results) --- */
+.flight-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid #e0e0e0;
+  transition: box-shadow 0.3s;
+}
+
+.flight-card:hover {
+  box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+  border-color: var(--primary-color);
+}
+
+.airline-logo-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.price-text {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-dark);
+}
+
+/* Small helper for timings */
+.time-group h4 {
+  font-weight: 800;
+  margin: 0;
+}
+.time-group p {
+  font-size: 0.8rem;
+  color: #777;
+  margin: 0;
+}
+/* --- Pro Search Results Page --- */
+
+/* Route Visual (The line between cities) */
+.route-line-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.route-duration {
+  font-size: 0.75rem;
+  color: #777;
+  margin-bottom: 5px;
+}
+
+.route-line {
+  width: 100px;
+  height: 2px;
+  background-color: #e0e0e0;
+  position: relative;
+}
+
+.route-line::after {
+  content: '✈';
+  position: absolute;
+  top: -10px;
+  right: -5px;
+  color: #e0e0e0;
+  font-size: 14px;
+}
+
+/* Flight Strip Layout */
+.flight-strip {
+  background: white;
+  border-radius: 8px;
+  padding: 25px 30px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  border: 1px solid transparent;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flight-strip:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+
+.airline-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  width: 25%;
+}
+
+.flight-timings {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 40%;
+  text-align: center;
+}
+
+.price-section {
+  text-align: right;
+  width: 20%;
+}
+
+.book-btn-sm {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 8px 25px;
+  border-radius: 25px;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  transition: background 0.2s;
+}
+
+.book-btn-sm:hover {
+  background-color: #0066cc;
+}
+/* --- Boarding Pass (My Bookings) --- */
+
+.boarding-pass {
+  display: flex;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+  overflow: hidden;
+  margin-bottom: 30px;
+  position: relative;
+  transition: transform 0.3s ease;
+}
+
+.boarding-pass:hover {
+  transform: translateY(-5px);
+}
+
+/* Left Side (Main) */
+.pass-main {
+  flex: 2.5;
+  padding: 25px;
+  position: relative;
+  border-right: 2px dashed #ccc; /* Cut line */
+}
+
+/* Right Side (Stub) */
+.pass-stub {
+  flex: 1;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Semicircles for "Cut" effect (Upar aur Neeche ke holes) */
+.pass-main::before, .pass-main::after {
+  content: '';
+  position: absolute;
+  right: -10px;
+  width: 20px;
+  height: 20px;
+  background-color: #f2f2f2; /* Matches body background */
+  border-radius: 50%;
+}
+.pass-main::before { top: -10px; }
+.pass-main::after { bottom: -10px; }
+
+/* Typography inside Ticket */
+.pass-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.pass-label {
+  font-size: 0.75rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 2px;
+}
+
+.pass-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #333;
+}
+
+.big-code {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--primary-color);
+  margin: 0;
+}
+
+.flight-icon-center {
+  color: #ccc;
+  font-size: 1.5rem;
+}
+/* --- Pro Auth Pages (Login/Register) --- */
+
+.auth-wrapper {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  background: white;
+}
+
+/* Left Side: Travel Image */
+.auth-image-side {
+  flex: 1.2; /* Thoda bada hissa image ka */
+  background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?ixlib=rb-4.0.3&auto=format&fit=crop&w=2021&q=80');
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 60px;
+  color: white;
+  position: relative;
+}
+
+.auth-quote h2 {
+  font-size: 3rem;
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 20px;
+  text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.auth-quote p {
+  font-size: 1.2rem;
+  opacity: 0.9;
+}
+
+/* Right Side: Form */
+.auth-form-side {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  position: relative;
+}
+
+.auth-box {
+  width: 100%;
+  max-width: 450px;
+}
+
+/* Pro Input Fields */
+.input-group-text {
+  background: #f8f9fa;
+  border: 1px solid #eee;
+  border-right: none;
+  color: var(--primary-color);
+}
+
+.pro-auth-input {
+  background: #f8f9fa;
+  border: 1px solid #eee;
+  border-left: none;
+  padding: 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+.pro-auth-input:focus {
+  background: white;
+  box-shadow: none;
+  border-color: var(--primary-color);
+}
+
+.auth-btn {
+  background: var(--primary-color);
+  color: white;
+  padding: 15px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 1px;
+  transition: all 0.3s;
+  box-shadow: 0 5px 15px rgba(0, 140, 255, 0.3);
+}
+
+.auth-btn:hover {
+  background: #0066cc;
+  transform: translateY(-2px);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 900px) {
+  .auth-image-side {
+    display: none; /* Mobile pe image hata do */
+  }
+}
+/* Seat Map Styles */
+.plane-map {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  border: 1px solid #ddd;
+}
+
+.seat-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr); /* 6 Seats per row (3-3) */
+  gap: 10px;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.aisle-gap {
+  grid-column: span 6; /* Beech ka rasta */
+  height: 20px;
+}
+
+.seat {
+  width: 35px;
+  height: 35px;
+  background: #e0e0e0;
+  border-radius: 5px 5px 10px 10px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+  transition: all 0.2s;
+}
+
+.seat:hover {
+  background: #b3d7ff;
+}
+
+.seat.selected {
+  background: var(--primary-color);
+  color: white;
+  transform: scale(1.1);
+  box-shadow: 0 0 10px rgba(0, 140, 255, 0.5);
+}
+
+.seat.occupied {
+  background: #ffcccc;
+  color: #a00;
+  cursor: not-allowed;
+}
