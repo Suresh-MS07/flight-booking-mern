@@ -1,133 +1,139 @@
-import React, { useEffect, useState } from 'react';
-import { FaPlane, FaBarcode, FaCheckCircle } from 'react-icons/fa';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  FaArrowRight,
+  FaBarcode,
+  FaCalendarCheck,
+  FaCheck,
+  FaCheckCircle,
+  FaPlane,
+  FaPlus,
+  FaRupeeSign,
+} from 'react-icons/fa';
 import { apiRequest } from '../config/api';
-import '../App.css';
 
 const MyBookings = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    let active = true;
     const fetchBookings = async () => {
       try {
         const response = await apiRequest('/api/bookings', { auth: true });
         const data = await response.json();
-        if (response.ok) {
-          setBookings(data);
-        } else {
-          setError(data.message || 'Unable to fetch bookings');
-        }
+        if (!active) return;
+        if (response.ok) setBookings(Array.isArray(data) ? data : []);
+        else setError(data.message || 'Unable to fetch bookings');
       } catch {
-        setError('Unable to connect to the booking service');
+        if (active) setError('Unable to connect to the booking service');
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
     fetchBookings();
+    return () => { active = false; };
   }, []);
 
-  if (loading) return (
-    <div className="text-center mt-5">
-      <div className="spinner-border text-primary"></div>
-      <p className="mt-2 text-muted">Fetching your tickets...</p>
-    </div>
+  const totalBooked = useMemo(
+    () => bookings.reduce((sum, booking) => sum + Number(booking.flightInfo?.price || 0), 0),
+    [bookings],
   );
 
+  if (loading) {
+    return (
+      <div className="trips-page page-shell">
+        <div className="trips-loading">
+          <span className="loading-plane"><FaPlane /></span>
+          <h2>Preparing your travel desk</h2>
+          <p>Fetching your tickets securely…</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="container mt-5">
-      <h2 className="mb-4 fw-bold">My Trips & Tickets 🎟️</h2>
+    <div className="trips-page page-shell">
+      {location.state?.booked && (
+        <div className="success-banner"><span><FaCheck /></span><div><strong>Booking confirmed</strong><p>Your ticket is ready and a confirmation email is on its way.</p></div></div>
+      )}
 
-      {error && <div className="alert alert-danger shadow-sm">{error}</div>}
-      
-      {!error && bookings.length === 0 ? (
-        <div className="alert alert-info shadow-sm">No bookings found. Time to plan a vacation! ✈️</div>
-      ) : (
-        <div className="row">
+      <div className="trips-heading">
+        <div>
+          <div className="eyebrow"><span /> Personal travel desk</div>
+          <h1>Your trips, all in one place.</h1>
+          <p>Open a ticket anytime and keep the journey details close.</p>
+        </div>
+        <button type="button" className="button button-primary" onClick={() => navigate('/')}><FaPlus /> Book another flight</button>
+      </div>
+
+      <div className="trip-stats">
+        <div><span className="stat-icon"><FaCalendarCheck /></span><div><small>Confirmed trips</small><strong>{bookings.length}</strong></div></div>
+        <div><span className="stat-icon stat-icon-green"><FaCheckCircle /></span><div><small>Booking status</small><strong>{bookings.length ? 'All set' : 'No trips yet'}</strong></div></div>
+        <div><span className="stat-icon stat-icon-amber"><FaRupeeSign /></span><div><small>Total booked</small><strong>₹{totalBooked.toLocaleString('en-IN')}</strong></div></div>
+      </div>
+
+      {error && (
+        <div className="state-card">
+          <span className="state-icon">!</span><h2>We could not load your trips</h2><p>{error}</p>
+          <button type="button" className="button button-primary" onClick={() => navigate('/login')}>Sign in again</button>
+        </div>
+      )}
+
+      {!error && bookings.length === 0 && (
+        <div className="empty-trips">
+          <div className="empty-trip-visual"><FaPlane /><i /><i /></div>
+          <div><span className="section-kicker">Your passport is waiting</span><h2>No trips booked yet</h2><p>Search live fares and turn your next destination into a confirmed ticket.</p></div>
+          <button type="button" className="button button-primary" onClick={() => navigate('/')}>Explore flights <FaArrowRight /></button>
+        </div>
+      )}
+
+      {!error && bookings.length > 0 && (
+        <section className="ticket-list" aria-label="Confirmed flight tickets">
+          <div className="ticket-list-head"><h2>Confirmed tickets</h2><span>{bookings.length} total</span></div>
           {bookings.map((booking) => {
-            // Random Seat/Gate generation for visuals
+            const info = booking.flightInfo || {};
             const gateSeed = Number.parseInt(String(booking._id).slice(-2), 16) || 1;
-            const randomGate = `A${(gateSeed % 10) + 1}`;
-            const seatNumber = booking.flightInfo.seatNumber || "Any";
-            
+            const gate = `A${(gateSeed % 10) + 1}`;
+            const travelDate = info.date
+              ? new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(`${info.date}T00:00:00`))
+              : 'Date unavailable';
+
             return (
-              <div key={booking._id} className="col-12 col-xl-10 mx-auto">
-                <div className="boarding-pass">
-                  
-                  {/* LEFT SIDE: Main Info */}
-                  <div className="pass-main">
-                    
-                    {/* Header */}
-                    <div className="pass-header">
-                      <div className="d-flex align-items-center gap-2">
-                        <FaPlane className="text-primary" />
-                        <span className="fw-bold text-uppercase">{booking.flightInfo.airline}</span>
-                      </div>
-                      <span className="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill d-flex align-items-center gap-1">
-                        <FaCheckCircle /> Confirmed
-                      </span>
-                    </div>
-
-                    {/* Route Big Codes */}
-                    <div className="d-flex justify-content-between align-items-center my-4">
-                      <div className="text-center">
-                        <h1 className="big-code">{booking.flightInfo.from}</h1>
-                        <p className="text-muted mb-0">Departure</p>
-                      </div>
-                      
-                      <div className="text-center px-4">
-                        <div style={{borderTop: '2px dashed #ddd', width: '100px', position: 'relative'}}>
-                          <FaPlane style={{position:'absolute', top:'-10px', left:'40%', background:'white', color:'#ccc'}} />
-                        </div>
-                        <small className="text-muted">{booking.flightInfo.duration || "2h 15m"}</small>
-                      </div>
-
-                      <div className="text-center">
-                        <h1 className="big-code">{booking.flightInfo.to}</h1>
-                        <p className="text-muted mb-0">Arrival</p>
-                      </div>
-                    </div>
-
-                    {/* Details Grid */}
-                    <div className="row mt-4">
-                      <div className="col-4">
-                        <div className="pass-label">PASSENGER</div>
-                        <div className="pass-value text-truncate">{booking.passengerName}</div>
-                      </div>
-                      <div className="col-4">
-                        <div className="pass-label">FLIGHT</div>
-                        <div className="pass-value">{booking.flightInfo.flightNumber}</div>
-                      </div>
-                      <div className="col-4">
-                        <div className="pass-label">DATE</div>
-                        <div className="pass-value">{new Date(booking.flightInfo.date).toLocaleDateString()}</div>
-                      </div>
-                    </div>
-
+              <article className="boarding-pass" key={booking._id}>
+                <div className="pass-main">
+                  <div className="pass-header">
+                    <div className="ticket-airline"><span className="airline-mark">{info.airline || 'SK'}</span><div><strong>{info.airline || 'SkyBooker'} Airlines</strong><small>{info.flightNumber || 'Flight'}</small></div></div>
+                    <span className="confirmed-pill"><FaCheckCircle /> Confirmed</span>
                   </div>
 
-                  {/* RIGHT SIDE: Stub (Tear-off) */}
-                  <div className="pass-stub">
-                    <div className="mb-3">
-                      <div className="pass-label">SEAT</div>
-                      <h2 className="text-primary fw-bold display-6">{seatNumber}</h2> {/* Naya */}
-                    </div>
-                    
-                    <div className="mb-4">
-                      <div className="pass-label">GATE</div>
-                      <h3 className="fw-bold text-dark">{randomGate}</h3>
-                    </div>
-
-                    <div className="mt-auto opacity-50">
-                      <FaBarcode size={50} />
-                    </div>
+                  <div className="pass-route">
+                    <div><strong>{info.from || '—'}</strong><span>Departure</span></div>
+                    <div className="pass-route-line"><span>Ready for takeoff</span><div><i /><FaPlane /><i /></div><small>{travelDate}</small></div>
+                    <div><strong>{info.to || '—'}</strong><span>Arrival</span></div>
                   </div>
 
+                  <div className="pass-details">
+                    <div><small>Passenger</small><strong>{booking.passengerName}</strong></div>
+                    <div><small>Flight</small><strong>{info.flightNumber || '—'}</strong></div>
+                    <div><small>Travel date</small><strong>{travelDate}</strong></div>
+                    <div><small>Fare</small><strong>₹{Number(info.price || 0).toLocaleString('en-IN')}</strong></div>
+                  </div>
                 </div>
-              </div>
+
+                <div className="pass-stub">
+                  <div className="stub-brand"><FaPlane /> BOARDING PASS</div>
+                  <div className="stub-grid"><div><small>Seat</small><strong>{info.seatNumber || 'Any'}</strong></div><div><small>Gate</small><strong>{gate}</strong></div></div>
+                  <FaBarcode className="barcode" />
+                  <small className="booking-reference">REF {String(booking._id).slice(-8).toUpperCase()}</small>
+                </div>
+              </article>
             );
           })}
-        </div>
+        </section>
       )}
     </div>
   );

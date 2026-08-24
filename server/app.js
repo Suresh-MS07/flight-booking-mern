@@ -20,6 +20,7 @@ app.use((req, res, next) => {
   next();
 });
 app.use(cors({
+  exposedHeaders: ['X-Flight-Data-Source'],
   origin(origin, callback) {
     if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
       callback(null, true);
