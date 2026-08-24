@@ -1,52 +1,65 @@
 const express = require('express');
+
+const requireAuth = require('../middleware/auth');
+const {
+  createRazorpayClient,
+  hasPaymentConfig,
+  verifyPaymentSignature,
+} = require('../services/paymentService');
+
 const router = express.Router();
-const Razorpay = require('razorpay');
-const crypto = require('crypto');
 
-// Razorpay Instance Setup
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET
-});
+router.use(requireAuth);
 
-// 1. Order Create Karne ki API
 router.post('/orders', async (req, res) => {
+  const amount = Number(req.body.amount);
+
+  if (!Number.isFinite(amount) || amount <= 0 || amount > 1000000) {
+    res.status(400).json({ message: 'Amount must be between 1 and 1,000,000 INR' });
+    return;
+  }
+
+  if (!hasPaymentConfig()) {
+    res.status(503).json({ message: 'Payments are not configured' });
+    return;
+  }
+
   try {
-    const { amount } = req.body; // Amount frontend se aayega (Rupees mein)
+    const razorpay = createRazorpayClient();
+    const order = await razorpay.orders.create({
+      amount: Math.round(amount * 100),
+      currency: 'INR',
+      receipt: `receipt_${Date.now()}`,
+    });
 
-    const options = {
-      amount: Math.round(amount * 100), // Razorpay 'Paise' mein leta hai (₹100 = 10000 paise)
-      currency: "INR",
-      receipt: "receipt_" + Date.now(),
-    };
-
-    const order = await razorpay.orders.create(options);
     res.json(order);
   } catch (error) {
-    console.error("Razorpay Error:", error);
-    res.status(500).json({ message: "Something went wrong" });
+    console.error(`Razorpay order failed: ${error.message}`);
+    res.status(502).json({ message: 'Unable to create payment order' });
   }
 });
 
-// 2. Payment Verify Karne ki API
-router.post('/verify', async (req, res) => {
-  try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+router.post('/verify', (req, res) => {
+  const orderId = String(req.body.razorpay_order_id || '');
+  const paymentId = String(req.body.razorpay_payment_id || '');
+  const signature = String(req.body.razorpay_signature || '');
 
-    const sign = razorpay_order_id + "|" + razorpay_payment_id;
-    const expectedSign = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-      .update(sign.toString())
-      .digest("hex");
-
-    if (razorpay_signature === expectedSign) {
-      res.json({ message: "Payment Verified Successfully" });
-    } else {
-      res.status(400).json({ message: "Invalid Signature" });
-    }
-  } catch (error) {
-    res.status(500).json({ message: "Internal Server Error" });
+  if (!orderId || !paymentId || !signature) {
+    res.status(400).json({ message: 'Missing payment verification details' });
+    return;
   }
+
+  if (!hasPaymentConfig()) {
+    res.status(503).json({ message: 'Payments are not configured' });
+    return;
+  }
+
+  if (!verifyPaymentSignature({ orderId, paymentId, signature })) {
+    res.status(400).json({ message: 'Invalid payment signature' });
+    return;
+  }
+
+  res.json({ message: 'Payment verified successfully' });
 });
 
 module.exports = router;

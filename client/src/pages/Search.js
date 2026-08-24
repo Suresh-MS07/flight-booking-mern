@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { FaPlane, FaClock } from 'react-icons/fa';
+import { FaPlane } from 'react-icons/fa';
+import { apiRequest } from '../config/api';
 import '../App.css';
 
 const Search = () => {
@@ -17,7 +18,12 @@ const Search = () => {
   useEffect(() => {
     const fetchFlights = async () => {
       try {
-        const response = await fetch(`https://flight-api-suresh.onrender.com/api/flights/search?from=${from}&to=${to}&date=${date}`);
+        const query = new URLSearchParams({
+          from: from || '',
+          to: to || '',
+          date: date || '',
+        });
+        const response = await apiRequest(`/api/flights/search?${query.toString()}`);
         const data = await response.json();
 
         if (response.ok) {
@@ -25,7 +31,7 @@ const Search = () => {
         } else {
           setError(data.message || "Something went wrong");
         }
-      } catch (err) {
+      } catch {
         setError("Failed to connect to server");
       } finally {
         setLoading(false);

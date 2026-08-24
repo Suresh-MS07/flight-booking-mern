@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { FaEnvelope, FaLock, FaArrowRight, FaGoogle } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
+import { FaEnvelope, FaLock, FaArrowRight } from 'react-icons/fa';
+import { apiRequest } from '../config/api';
 import '../App.css';
 
 const Login = () => {
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: '', password: '' });
 
   const handleChange = (e) => {
@@ -14,7 +14,7 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('https://flight-api-suresh.onrender.com/api/auth/login', {
+      const response = await apiRequest('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -28,7 +28,7 @@ const Login = () => {
       } else {
         alert(data.message);
       }
-    } catch (error) {
+    } catch {
       alert("Login Failed");
     }
   };
@@ -37,7 +37,7 @@ const Login = () => {
     <div className="auth-wrapper">
       
       {/* LEFT SIDE: Image */}
-      <div className="auth-image-side">
+      <div className="auth-image-side" aria-hidden="true">
         <div className="auth-quote">
           <h2>Explore the <br/> Unseen World.</h2>
           <p>Login to access exclusive flight deals and manage your trips.</p>
@@ -54,11 +54,12 @@ const Login = () => {
 
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
-              <label className="form-label fw-bold text-muted small">EMAIL ADDRESS</label>
+              <label className="form-label fw-bold text-muted small" htmlFor="login-email">EMAIL ADDRESS</label>
               <div className="input-group">
                 <span className="input-group-text"><FaEnvelope /></span>
                 <input 
                   type="email" 
+                  id="login-email"
                   name="email" 
                   className="form-control pro-auth-input" 
                   placeholder="name@example.com" 
@@ -69,11 +70,12 @@ const Login = () => {
             </div>
 
             <div className="mb-4">
-              <label className="form-label fw-bold text-muted small">PASSWORD</label>
+              <label className="form-label fw-bold text-muted small" htmlFor="login-password">PASSWORD</label>
               <div className="input-group">
                 <span className="input-group-text"><FaLock /></span>
                 <input 
                   type="password" 
+                  id="login-password"
                   name="password" 
                   className="form-control pro-auth-input" 
                   placeholder="••••••••" 
@@ -83,23 +85,17 @@ const Login = () => {
               </div>
             </div>
 
-            <div className="d-flex justify-content-between mb-4">
+            <div className="mb-4">
               <div className="form-check">
                 <input className="form-check-input" type="checkbox" id="remember" />
                 <label className="form-check-label text-muted" htmlFor="remember">Remember me</label>
               </div>
-              <a href="#" className="text-primary text-decoration-none fw-bold small">Forgot Password?</a>
             </div>
 
             <button className="btn w-100 auth-btn mb-4">
               Sign In <FaArrowRight className="ms-2" />
             </button>
           </form>
-
-          {/* Social Login Dummy */}
-          <button className="btn btn-light border w-100 py-2 mb-4 fw-bold text-muted">
-            <FaGoogle className="me-2 text-danger" /> Continue with Google
-          </button>
 
           <p className="text-center text-muted">
             Don't have an account? <Link to="/register" className="fw-bold text-primary text-decoration-none">Create free account</Link>

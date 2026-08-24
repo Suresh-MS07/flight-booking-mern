@@ -1,33 +1,31 @@
 import React, { useEffect, useState } from 'react';
 import { FaPlane, FaBarcode, FaCheckCircle } from 'react-icons/fa';
+import { apiRequest } from '../config/api';
 import '../App.css';
 
 const MyBookings = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchBookings = async () => {
       try {
-        const response = await fetch('https://flight-api-suresh.onrender.com/api/bookings');
+        const response = await apiRequest('/api/bookings', { auth: true });
         const data = await response.json();
         if (response.ok) {
           setBookings(data);
+        } else {
+          setError(data.message || 'Unable to fetch bookings');
         }
-      } catch (error) {
-        console.error("Error:", error);
+      } catch {
+        setError('Unable to connect to the booking service');
       } finally {
         setLoading(false);
       }
     };
     fetchBookings();
   }, []);
-
-  // Format Time Helper
-  const formatTime = (dateString) => {
-    if (!dateString) return "00:00";
-    return dateString.includes('T') ? dateString.split('T')[1].slice(0, 5) : "10:00";
-  };
 
   if (loading) return (
     <div className="text-center mt-5">
@@ -39,14 +37,17 @@ const MyBookings = () => {
   return (
     <div className="container mt-5">
       <h2 className="mb-4 fw-bold">My Trips & Tickets 🎟️</h2>
+
+      {error && <div className="alert alert-danger shadow-sm">{error}</div>}
       
-      {bookings.length === 0 ? (
+      {!error && bookings.length === 0 ? (
         <div className="alert alert-info shadow-sm">No bookings found. Time to plan a vacation! ✈️</div>
       ) : (
         <div className="row">
           {bookings.map((booking) => {
             // Random Seat/Gate generation for visuals
-            const randomGate = "A" + Math.floor(Math.random() * 10 + 1);
+            const gateSeed = Number.parseInt(String(booking._id).slice(-2), 16) || 1;
+            const randomGate = `A${(gateSeed % 10) + 1}`;
             const seatNumber = booking.flightInfo.seatNumber || "Any";
             
             return (
@@ -99,7 +100,7 @@ const MyBookings = () => {
                       </div>
                       <div className="col-4">
                         <div className="pass-label">DATE</div>
-                        <div className="pass-value">{booking.flightInfo.date}</div>
+                        <div className="pass-value">{new Date(booking.flightInfo.date).toLocaleDateString()}</div>
                       </div>
                     </div>
 

@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaPlaneDeparture, FaPlaneArrival, FaCalendarAlt } from 'react-icons/fa';
-import { motion } from 'framer-motion'; // ✅ Import Framer Motion
+import { motion } from 'framer-motion';
 import '../App.css';
 
 const Home = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ from: 'DEL', to: 'BOM', date: '' });
+  const today = new Date().toISOString().split('T')[0];
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value.toUpperCase() });
@@ -46,12 +47,12 @@ const Home = () => {
           
           <div className="d-flex mb-3 gap-4">
             <div className="form-check">
-              <input className="form-check-input" type="radio" name="tripType" defaultChecked />
-              <label className="form-check-label fw-bold">One Way</label>
+              <input id="one-way" className="form-check-input" type="radio" name="tripType" defaultChecked />
+              <label className="form-check-label fw-bold" htmlFor="one-way">One Way</label>
             </div>
             <div className="form-check">
-              <input className="form-check-input" type="radio" name="tripType" disabled />
-              <label className="form-check-label text-muted">Round Trip <span className="badge bg-secondary" style={{fontSize: '0.6rem'}}>COMING SOON</span></label>
+              <input id="round-trip" className="form-check-input" type="radio" name="tripType" disabled />
+              <label className="form-check-label text-muted" htmlFor="round-trip">Round Trip <span className="badge bg-secondary" style={{fontSize: '0.6rem'}}>COMING SOON</span></label>
             </div>
           </div>
 
@@ -60,11 +61,12 @@ const Home = () => {
               
               <div className="col-md-4">
                 <div className="input-box">
-                  <label className="input-label">FROM</label>
+                  <label className="input-label" htmlFor="from-airport">FROM</label>
                   <div className="d-flex align-items-center">
                     <FaPlaneDeparture className="text-muted me-2" />
                     <input 
                       type="text" 
+                      id="from-airport"
                       className="custom-input" 
                       placeholder="DEL" 
                       name="from"
@@ -79,11 +81,12 @@ const Home = () => {
 
               <div className="col-md-4">
                 <div className="input-box">
-                  <label className="input-label">TO</label>
+                  <label className="input-label" htmlFor="to-airport">TO</label>
                   <div className="d-flex align-items-center">
                     <FaPlaneArrival className="text-muted me-2" />
                     <input 
                       type="text" 
+                      id="to-airport"
                       className="custom-input" 
                       placeholder="BOM" 
                       name="to"
@@ -98,14 +101,16 @@ const Home = () => {
 
               <div className="col-md-4">
                 <div className="input-box">
-                  <label className="input-label">DEPARTURE</label>
+                  <label className="input-label" htmlFor="departure-date">DEPARTURE</label>
                   <div className="d-flex align-items-center">
                     <FaCalendarAlt className="text-muted me-2" />
                     <input 
                       type="date" 
+                      id="departure-date"
                       className="custom-input" 
                       name="date"
                       value={formData.date}
+                      min={today}
                       onChange={handleChange}
                       style={{fontSize: '1.1rem'}}
                     />
