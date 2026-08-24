@@ -14,6 +14,15 @@ SkyBooker is a full-stack MERN flight-booking application that searches live fli
 - API input validation, CORS allow-listing, security headers, JSON 404/error responses, and a health endpoint
 - Automated client build/tests and API tests on every pull request
 
+## Product experience
+
+- Premium responsive interface with a reusable navy, blue, and mint design system
+- Focused flight-search console with airport-code validation, route swapping, and quick-route shortcuts
+- Search results with best/cheapest/fastest sorting, skeleton loading, and clear empty/error states
+- Guided three-step checkout with an accessible seat map and server-verified payment handoff
+- Personal travel dashboard with booking metrics and responsive boarding passes
+- Accessible mobile navigation, reduced-motion support, visible focus states, and semantic status feedback
+
 ## Architecture
 
 | Layer | Technology | Responsibility |

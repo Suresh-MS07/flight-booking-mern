@@ -1,10 +1,22 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { FaPlaneDeparture, FaUserCircle, FaSignOutAlt } from 'react-icons/fa'; // Icons import
+import React, { useEffect, useState } from 'react';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { FaBars, FaPlaneDeparture, FaSignOutAlt, FaTimes, FaUserCircle } from 'react-icons/fa';
+
+const readUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem('user'));
+  } catch {
+    return null;
+  }
+};
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem('user'));
+  const location = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const user = readUser();
+
+  useEffect(() => setMenuOpen(false), [location.pathname]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -13,58 +25,56 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="navbar navbar-expand-lg custom-navbar sticky-top">
-      <div className="container">
-        {/* Logo */}
-        <Link className="navbar-brand brand-logo d-flex align-items-center" to="/">
-          <FaPlaneDeparture className="me-2" /> SkyBooker
+    <header className="site-header">
+      <nav className="nav-shell" aria-label="Primary navigation">
+        <Link className="brand" to="/" aria-label="SkyBooker home">
+          <span className="brand-mark"><FaPlaneDeparture /></span>
+          <span>
+            <strong>SkyBooker</strong>
+            <small>Travel, simplified</small>
+          </span>
         </Link>
 
         <button
-          className="navbar-toggler"
           type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarNav"
-          aria-controls="navbarNav"
-          aria-expanded="false"
-          aria-label="Toggle navigation"
+          className="nav-toggle"
+          aria-label={menuOpen ? 'Close navigation' : 'Open navigation'}
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((open) => !open)}
         >
-          <span className="navbar-toggler-icon"></span>
+          {menuOpen ? <FaTimes /> : <FaBars />}
         </button>
 
-        <div className="collapse navbar-collapse" id="navbarNav">
-          <ul className="navbar-nav ms-auto align-items-center">
-            
+        <div className={`nav-content ${menuOpen ? 'is-open' : ''}`}>
+          <div className="nav-links">
+            <NavLink to="/" end>Explore</NavLink>
+            <NavLink to="/my-bookings">My trips</NavLink>
+          </div>
+
+          <div className="nav-actions">
             {user ? (
               <>
-                <li className="nav-item">
-                  <Link className="nav-link" to="/my-bookings">My Trips</Link>
-                </li>
-                <li className="nav-item d-flex align-items-center ms-3">
-                  <FaUserCircle size={25} className="text-primary me-2" />
-                  <span className="fw-bold text-dark">{user.name.split(' ')[0]}</span>
-                </li>
-                <li className="nav-item">
-                  <button onClick={handleLogout} className="btn btn-outline-danger btn-sm ms-3 rounded-pill px-3">
-                    <FaSignOutAlt /> Logout
-                  </button>
-                </li>
+                <div className="user-chip">
+                  <FaUserCircle />
+                  <span>
+                    <small>Welcome back</small>
+                    <strong>{user.name?.split(' ')[0] || 'Traveler'}</strong>
+                  </span>
+                </div>
+                <button type="button" className="button button-ghost button-small" onClick={handleLogout}>
+                  <FaSignOutAlt /> Log out
+                </button>
               </>
             ) : (
               <>
-                <li className="nav-item">
-                  <Link className="btn btn-outline-primary rounded-pill px-4 me-2" to="/login">Login</Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="btn btn-primary rounded-pill px-4" to="/register">Register</Link>
-                </li>
+                <Link className="button button-ghost button-small" to="/login">Log in</Link>
+                <Link className="button button-primary button-small" to="/register">Create account</Link>
               </>
             )}
-
-          </ul>
+          </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+    </header>
   );
 };
 

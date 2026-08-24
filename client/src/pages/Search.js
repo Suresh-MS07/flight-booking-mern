@@ -1,137 +1,227 @@
-import React, { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { FaPlane } from 'react-icons/fa';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import {
+  FaArrowRight,
+  FaCheckCircle,
+  FaClock,
+  FaFilter,
+  FaPlane,
+  FaShieldAlt,
+  FaSuitcaseRolling,
+} from 'react-icons/fa';
 import { apiRequest } from '../config/api';
-import '../App.css';
+
+const formatTime = (isoString = '') => {
+  const time = isoString.split('T')[1];
+  return time ? time.slice(0, 5) : '--:--';
+};
+
+const durationToMinutes = (value = '') => {
+  const hours = Number(value.match(/(\d+)H/)?.[1] || 0);
+  const minutes = Number(value.match(/(\d+)M/)?.[1] || 0);
+  return (hours * 60) + minutes;
+};
+
+const formatDuration = (value = '') => {
+  const minutes = durationToMinutes(value);
+  if (!minutes) return 'Duration unavailable';
+  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+};
+
+const FlightSkeleton = () => (
+  <div className="result-card result-skeleton" aria-hidden="true">
+    <div className="skeleton-block skeleton-airline" />
+    <div className="skeleton-block skeleton-route" />
+    <div className="skeleton-block skeleton-price" />
+  </div>
+);
 
 const Search = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [flights, setFlights] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
+  const [sortBy, setSortBy] = useState('best');
 
-  const from = searchParams.get('from');
-  const to = searchParams.get('to');
-  const date = searchParams.get('date');
+  const from = (searchParams.get('from') || '').toUpperCase();
+  const to = (searchParams.get('to') || '').toUpperCase();
+  const date = searchParams.get('date') || '';
 
   useEffect(() => {
+    let active = true;
+
     const fetchFlights = async () => {
+      setLoading(true);
+      setError('');
+
+      if (!from || !to || !date) {
+        setError('Your search is missing a route or departure date.');
+        setLoading(false);
+        return;
+      }
+
       try {
-        const query = new URLSearchParams({
-          from: from || '',
-          to: to || '',
-          date: date || '',
-        });
+        const query = new URLSearchParams({ from, to, date });
         const response = await apiRequest(`/api/flights/search?${query.toString()}`);
         const data = await response.json();
 
-        if (response.ok) {
-          setFlights(data);
-        } else {
-          setError(data.message || "Something went wrong");
-        }
+        if (!active) return;
+        if (response.ok) setFlights(Array.isArray(data) ? data : []);
+        else setError(data.message || 'We could not load fares for this route.');
       } catch {
-        setError("Failed to connect to server");
+        if (active) setError('The flight service is taking longer than expected. Please try again.');
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
+
     fetchFlights();
+    return () => { active = false; };
   }, [from, to, date]);
 
-  // Helper to format time (e.g., 2025-10-10T10:00:00 -> 10:00)
-  const formatTime = (isoString) => isoString.split('T')[1].slice(0, 5);
-  
-  // Helper to calculate duration (approximate for UI)
-  const calculateDuration = (segment) => {
-    // Amadeus duration string (PT2H15M) ko parse karna complex hai, 
-    // abhi ke liye static dikhate hain ya simple logic lagate hain
-    return segment.duration.replace('PT', '').replace('H', 'h ').replace('M', 'm');
-  };
+  const sortedFlights = useMemo(() => {
+    const next = [...flights];
+    if (sortBy === 'cheapest') {
+      return next.sort((a, b) => Number(a.price?.total || 0) - Number(b.price?.total || 0));
+    }
+    if (sortBy === 'fastest') {
+      return next.sort((a, b) => durationToMinutes(a.itineraries?.[0]?.duration) - durationToMinutes(b.itineraries?.[0]?.duration));
+    }
+    return next;
+  }, [flights, sortBy]);
+
+  const formattedDate = date
+    ? new Intl.DateTimeFormat('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(`${date}T00:00:00`))
+    : 'Select date';
 
   return (
-    <div className="container" style={{ marginTop: '50px', marginBottom: '80px' }}>
-      {/* Header Section */}
-      <div className="d-flex justify-content-between align-items-center mb-4">
+    <div className="results-page page-shell">
+      <section className="results-hero">
         <div>
-          <h2 className="fw-bold mb-1">Flights from {from} to {to}</h2>
-          <p className="text-muted mb-0">{new Date(date).toDateString()} | {flights.length} Flights Found</p>
+          <div className="eyebrow eyebrow-light"><span /> Live flight offers</div>
+          <h1>{from || 'Origin'} <span><FaPlane /></span> {to || 'Destination'}</h1>
+          <p>{formattedDate} · 1 traveler · Economy</p>
         </div>
-        <button className="btn btn-outline-secondary btn-sm rounded-pill" onClick={() => navigate('/')}>Modify Search</button>
+        <button type="button" className="button button-light button-small" onClick={() => navigate('/')}>
+          Modify search
+        </button>
+      </section>
+
+      <div className="results-toolbar">
+        <div>
+          <strong>{loading ? 'Finding the right flights' : `${flights.length} flight${flights.length === 1 ? '' : 's'} found`}</strong>
+          <span>Prices include estimated taxes and fees</span>
+        </div>
+        <div className="sort-control" aria-label="Sort flights">
+          <FaFilter />
+          {[
+            ['best', 'Best'],
+            ['cheapest', 'Cheapest'],
+            ['fastest', 'Fastest'],
+          ].map(([value, label]) => (
+            <button
+              type="button"
+              key={value}
+              className={sortBy === value ? 'is-active' : ''}
+              onClick={() => setSortBy(value)}
+              aria-pressed={sortBy === value}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
-      
-      {loading && (
-        <div className="text-center py-5">
-          <div className="spinner-border text-primary" role="status"></div>
-          <p className="mt-3 text-muted">Scanning airlines for best fares...</p>
-        </div>
-      )}
 
-      {error && <div className="alert alert-danger shadow-sm">{error}</div>}
+      <div className="results-layout">
+        <aside className="results-aside">
+          <div className="aside-card">
+            <span className="aside-icon"><FaShieldAlt /></span>
+            <h2>Book with clarity</h2>
+            <ul>
+              <li><FaCheckCircle /> Verified Razorpay checkout</li>
+              <li><FaCheckCircle /> User-owned booking history</li>
+              <li><FaCheckCircle /> Email ticket confirmation</li>
+            </ul>
+          </div>
+          <div className="aside-card aside-card-compact">
+            <FaClock />
+            <div><strong>Live availability</strong><span>Fares can change until payment.</span></div>
+          </div>
+        </aside>
 
-      {!loading && !error && flights.length === 0 && (
-        <div className="text-center py-5">
-          <h3>😔 No flights found</h3>
-          <p className="text-muted">Try changing the date or route.</p>
-        </div>
-      )}
+        <section className="flight-results" aria-live="polite" aria-busy={loading}>
+          {loading && <><FlightSkeleton /><FlightSkeleton /><FlightSkeleton /></>}
 
-      {/* Flight List */}
-      <div className="flight-list">
-        {flights.map((flight, index) => {
-          const itinerary = flight.itineraries[0];
-          const segment = itinerary.segments[0];
-          const carrierCode = flight.validatingAirlineCodes[0];
-          const price = flight.price.total;
-
-          return (
-            <div key={index} className="flight-strip">
-              
-              {/* 1. Airline Info */}
-              <div className="airline-info">
-                <div className="bg-light p-3 rounded-circle d-flex align-items-center justify-content-center" style={{width: '50px', height: '50px'}}>
-                  <FaPlane className="text-primary" />
-                </div>
-                <div>
-                  <h6 className="fw-bold mb-0">{carrierCode} Airlines</h6>
-                  <small className="text-muted">{segment.carrierCode}-{segment.number}</small>
-                </div>
-              </div>
-
-              {/* 2. Timings & Route */}
-              <div className="flight-timings">
-                <div className="text-center">
-                  <h4 className="fw-bold mb-0">{formatTime(segment.departure.at)}</h4>
-                  <small className="fw-bold text-muted">{segment.departure.iataCode}</small>
-                </div>
-
-                <div className="route-line-container px-3">
-                  <span className="route-duration">{calculateDuration(segment)}</span>
-                  <div className="route-line"></div>
-                  <small className="text-muted mt-1" style={{fontSize: '0.7rem'}}>Non-stop</small>
-                </div>
-
-                <div className="text-center">
-                  <h4 className="fw-bold mb-0">{formatTime(segment.arrival.at)}</h4>
-                  <small className="fw-bold text-muted">{segment.arrival.iataCode}</small>
-                </div>
-              </div>
-
-              {/* 3. Price & Book */}
-              <div className="price-section">
-                <h3 className="fw-bold text-dark mb-2">₹{price}</h3>
-                <button 
-                  className="book-btn-sm shadow-sm"
-                  onClick={() => navigate('/book', { state: { flight: flight } })}
-                >
-                  Book Now
-                </button>
-              </div>
-
+          {!loading && error && (
+            <div className="state-card">
+              <span className="state-icon">!</span>
+              <h2>We hit a little turbulence</h2>
+              <p>{error}</p>
+              <button type="button" className="button button-primary" onClick={() => navigate('/')}>Try another search</button>
             </div>
-          );
-        })}
+          )}
+
+          {!loading && !error && sortedFlights.length === 0 && (
+            <div className="state-card">
+              <span className="state-icon"><FaPlane /></span>
+              <h2>No flights found for this route</h2>
+              <p>Try a nearby airport or a different departure date.</p>
+              <button type="button" className="button button-primary" onClick={() => navigate('/')}>Change search</button>
+            </div>
+          )}
+
+          {!loading && !error && sortedFlights.map((flight, index) => {
+            const itinerary = flight.itineraries?.[0] || {};
+            const segments = itinerary.segments || [];
+            const firstSegment = segments[0] || {};
+            const lastSegment = segments[segments.length - 1] || firstSegment;
+            const carrierCode = flight.validatingAirlineCodes?.[0] || firstSegment.carrierCode || 'SK';
+            const price = flight.price?.total || '--';
+            const stops = Math.max(segments.length - 1, 0);
+
+            return (
+              <article className="result-card" key={flight.id || `${carrierCode}-${index}`}>
+                <div className="result-airline">
+                  <div className="airline-mark">{carrierCode}</div>
+                  <div>
+                    <strong>{carrierCode} Airlines</strong>
+                    <span>{firstSegment.carrierCode || carrierCode}-{firstSegment.number || '—'}</span>
+                  </div>
+                </div>
+
+                <div className="result-route">
+                  <div className="result-time">
+                    <strong>{formatTime(firstSegment.departure?.at)}</strong>
+                    <span>{firstSegment.departure?.iataCode || from}</span>
+                  </div>
+                  <div className="route-track">
+                    <span>{formatDuration(itinerary.duration || firstSegment.duration)}</span>
+                    <div><i /><FaPlane /><i /></div>
+                    <small>{stops === 0 ? 'Non-stop' : `${stops} stop${stops === 1 ? '' : 's'}`}</small>
+                  </div>
+                  <div className="result-time result-time-end">
+                    <strong>{formatTime(lastSegment.arrival?.at)}</strong>
+                    <span>{lastSegment.arrival?.iataCode || to}</span>
+                  </div>
+                </div>
+
+                <div className="result-price">
+                  <small>per traveler</small>
+                  <strong>₹{Number(price).toLocaleString('en-IN')}</strong>
+                  <span><FaSuitcaseRolling /> Cabin bag included</span>
+                  <button
+                    type="button"
+                    className="button button-primary button-small"
+                    onClick={() => navigate('/book', { state: { flight } })}
+                  >
+                    Select <FaArrowRight />
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </section>
       </div>
     </div>
   );

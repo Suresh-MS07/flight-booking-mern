@@ -1,116 +1,83 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { FaUser, FaEnvelope, FaLock, FaArrowRight } from 'react-icons/fa';
+import { Link, useNavigate } from 'react-router-dom';
+import { FaArrowRight, FaCheck, FaEnvelope, FaLock, FaPlaneDeparture, FaShieldAlt, FaUser } from 'react-icons/fa';
 import { apiRequest } from '../config/api';
-import '../App.css';
 
 const Register = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleChange = (event) => {
+    setFormData((current) => ({ ...current, [event.target.name]: event.target.value }));
+    setError('');
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setSubmitting(true);
+    setError('');
+
     try {
       const response = await apiRequest('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
       });
       const data = await response.json();
-      if (response.ok) {
-        alert("Registration Successful! Please Login.");
-        navigate('/login');
-      } else {
-        alert(data.message);
-      }
-    } catch {
-      alert("Something went wrong");
+      if (!response.ok) throw new Error(data.message || 'We could not create your account.');
+      navigate('/login', { replace: true });
+    } catch (requestError) {
+      setError(requestError.message || 'Registration failed. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <div className="auth-wrapper">
-      
-      {/* LEFT SIDE: Image (Different Image for variety) */}
-      <div className="auth-image-side" aria-hidden="true" style={{backgroundImage: "linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80')"}}>
-        <div className="auth-quote">
-          <h2>Start Your <br/> Journey Today.</h2>
-          <p>Join SkyBooker and book flights with zero hidden fees.</p>
+    <div className="auth-page">
+      <section className="auth-story auth-story-register" aria-hidden="true">
+        <div className="auth-story-orbit"><FaPlaneDeparture /></div>
+        <div className="auth-story-copy">
+          <span className="auth-brand-label"><FaPlaneDeparture /> SkyBooker</span>
+          <h2>One account. A world of possibilities.</h2>
+          <p>Create your travel space and move from live fare to confirmed seat with less friction.</p>
+          <ul><li><FaCheck /> Search live airline offers</li><li><FaCheck /> Choose your preferred seat</li><li><FaCheck /> Keep tickets organized</li></ul>
         </div>
-      </div>
+        <div className="auth-proof"><FaShieldAlt /><span><strong>Secure onboarding</strong><small>Passwords are protected with bcrypt hashing.</small></span></div>
+      </section>
 
-      {/* RIGHT SIDE: Form */}
-      <div className="auth-form-side">
+      <section className="auth-form-panel">
         <div className="auth-box">
-          <div className="mb-5">
-            <h1 className="fw-bold">Create Account 🚀</h1>
-            <p className="text-muted">Sign up to get started.</p>
-          </div>
+          <div className="auth-heading"><span className="section-kicker">Start exploring</span><h1>Create your account</h1><p>It only takes a minute to set up your travel space.</p></div>
 
           <form onSubmit={handleSubmit}>
-            <div className="mb-3">
-              <label className="form-label fw-bold text-muted small" htmlFor="register-name">FULL NAME</label>
-              <div className="input-group">
-                <span className="input-group-text"><FaUser /></span>
-                <input 
-                  type="text" 
-                  id="register-name"
-                  name="name" 
-                  className="form-control pro-auth-input" 
-                  placeholder="John Doe" 
-                  onChange={handleChange} 
-                  required 
-                />
-              </div>
-            </div>
+            <label className="form-field form-field-full" htmlFor="register-name">
+              <span>Full name</span>
+              <div><FaUser /><input id="register-name" name="name" value={formData.name} placeholder="Your full name" autoComplete="name" onChange={handleChange} required /></div>
+            </label>
+            <label className="form-field form-field-full" htmlFor="register-email">
+              <span>Email address</span>
+              <div><FaEnvelope /><input id="register-email" type="email" name="email" value={formData.email} placeholder="name@example.com" autoComplete="email" onChange={handleChange} required /></div>
+            </label>
+            <label className="form-field form-field-full" htmlFor="register-password">
+              <span>Password</span>
+              <div><FaLock /><input id="register-password" type="password" name="password" value={formData.password} placeholder="At least 8 characters" minLength={8} autoComplete="new-password" onChange={handleChange} required /></div>
+            </label>
 
-            <div className="mb-3">
-              <label className="form-label fw-bold text-muted small" htmlFor="register-email">EMAIL ADDRESS</label>
-              <div className="input-group">
-                <span className="input-group-text"><FaEnvelope /></span>
-                <input 
-                  type="email" 
-                  id="register-email"
-                  name="email" 
-                  className="form-control pro-auth-input" 
-                  placeholder="name@example.com" 
-                  onChange={handleChange} 
-                  required 
-                />
-              </div>
-            </div>
+            <p className="password-hint"><span /> Use at least 8 characters for a stronger password.</p>
+            {error && <p className="auth-error" role="alert">{error}</p>}
 
-            <div className="mb-4">
-              <label className="form-label fw-bold text-muted small" htmlFor="register-password">PASSWORD</label>
-              <div className="input-group">
-                <span className="input-group-text"><FaLock /></span>
-                <input 
-                  type="password" 
-                  id="register-password"
-                  name="password" 
-                  className="form-control pro-auth-input" 
-                  placeholder="••••••••" 
-                  minLength={8}
-                  onChange={handleChange} 
-                  required 
-                />
-              </div>
-            </div>
-
-            <button className="btn w-100 auth-btn mb-4">
-              Create Account <FaArrowRight className="ms-2" />
+            <button className="button button-primary auth-submit" type="submit" disabled={submitting}>
+              {submitting ? 'Creating account…' : 'Create account'} {!submitting && <FaArrowRight />}
             </button>
           </form>
 
-          <p className="text-center text-muted">
-            Already a member? <Link to="/login" className="fw-bold text-primary text-decoration-none">Login Here</Link>
-          </p>
+          <p className="auth-switch">Already have an account? <Link to="/login">Sign in</Link></p>
+          <div className="auth-secure"><FaLock /> By continuing, you agree to secure account-based bookings.</div>
         </div>
-      </div>
+      </section>
     </div>
   );
 };

@@ -1,161 +1,101 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  FaArrowLeft,
+  FaCheck,
+  FaCheckCircle,
+  FaClock,
+  FaCreditCard,
+  FaEnvelope,
+  FaLock,
+  FaPlane,
+  FaShieldAlt,
+  FaSuitcaseRolling,
+  FaUser,
+} from 'react-icons/fa';
 import { apiRequest } from '../config/api';
-import '../App.css'; // CSS import zaroori hai seat styling ke liye
 
 const razorpayKeyId = process.env.REACT_APP_RAZORPAY_KEY_ID;
+const occupiedSeats = new Set(['1A', '1F', '2C', '3D', '4B', '5E']);
+
+const formatTime = (value = '') => value.split('T')[1]?.slice(0, 5) || '--:--';
 
 const Booking = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const flight = location.state?.flight;
+  const storedUser = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem('user')) || {}; }
+    catch { return {}; }
+  }, []);
 
-  // States
-  const [userData, setUserData] = useState({ name: '', email: '', phone: '' });
+  const [userData, setUserData] = useState({ name: storedUser.name || '', email: storedUser.email || '', phone: '' });
   const [selectedSeat, setSelectedSeat] = useState(null);
+  const [processing, setProcessing] = useState(false);
 
-  // Agar user bina flight select kiye seedha URL se aaye
-  if (!flight) return <div className="container mt-5 text-center"><h2>⚠️ No flight selected! Please search first.</h2></div>;
-
-  const price = flight.price.total;
-
-  // Input Change Handler
-  const handleChange = (e) => setUserData({ ...userData, [e.target.name]: e.target.value });
-
-  // --- 💺 SEAT SELECTION LOGIC ---
-  const renderSeats = () => {
-    const rows = [1, 2, 3, 4, 5, 6]; // 6 Rows
-    const cols = ['A', 'B', 'C', 'D', 'E', 'F']; // 6 Columns
-    
+  if (!flight) {
     return (
-      <div className="seat-grid mt-4">
-        {rows.map(row => (
-          cols.map(col => {
-            const seatId = `${row}${col}`;
-            const isSelected = selectedSeat === seatId;
-            
-            // Seat Styling Logic
-            let seatClass = "seat";
-            if (isSelected) seatClass += " selected";
-            
-            // Beech mein rasta (C aur D ke beech gap)
-            const style = col === 'D' ? { marginLeft: '25px' } : {};
-
-            return (
-              <button
-                type="button"
-                key={seatId} 
-                className={seatClass} 
-                style={style}
-                onClick={() => setSelectedSeat(seatId)}
-                aria-pressed={isSelected}
-                aria-label={`Seat ${seatId}`}
-              >
-                {seatId}
-              </button>
-            );
-          })
-        ))}
+      <div className="state-page page-shell">
+        <div className="state-card">
+          <span className="state-icon"><FaPlane /></span>
+          <h1>No flight selected</h1>
+          <p>Choose a flight first, then we will keep it ready here.</p>
+          <button type="button" className="button button-primary" onClick={() => navigate('/')}>Search flights</button>
+        </div>
       </div>
     );
+  }
+
+  const itinerary = flight.itineraries?.[0] || {};
+  const segments = itinerary.segments || [];
+  const firstSegment = segments[0] || {};
+  const lastSegment = segments[segments.length - 1] || firstSegment;
+  const carrier = flight.validatingAirlineCodes?.[0] || firstSegment.carrierCode || 'SK';
+  const price = flight.price?.total || 0;
+  const flightNumber = `${firstSegment.carrierCode || carrier}-${firstSegment.number || '—'}`;
+
+  const handleChange = (event) => {
+    setUserData((current) => ({ ...current, [event.target.name]: event.target.value }));
   };
 
-  // --- 💳 PAYMENT & BOOKING LOGIC ---
-  const handlePayment = async (e) => {
-    e.preventDefault();
+  const renderSeats = () => {
+    const rows = [1, 2, 3, 4, 5, 6];
+    const columns = ['A', 'B', 'C', 'D', 'E', 'F'];
 
-    // 1. Validation Checks
-    const user = JSON.parse(localStorage.getItem('user'));
-    const token = localStorage.getItem('token');
-    if (!user || !token) {
-      alert("Please Login first to book tickets!");
-      navigate('/login');
-      return;
-    }
-    if (!selectedSeat) {
-      alert("Please select a seat first! 💺");
-      return;
-    }
-    if (!window.Razorpay || !razorpayKeyId) {
-      alert('Payment checkout is not configured. Please contact support.');
-      return;
-    }
+    return rows.flatMap((row) => columns.map((column) => {
+      const seatId = `${row}${column}`;
+      const isSelected = selectedSeat === seatId;
+      const isOccupied = occupiedSeats.has(seatId);
 
-    try {
-      // 2. Order Create (Backend)
-      const orderRes = await apiRequest('/api/payment/orders', {
-        auth: true,
-        method: 'POST',
-        body: JSON.stringify({ amount: price })
-      });
-      
-      const orderData = await orderRes.json();
-      if (!orderRes.ok) throw new Error(orderData.message || "Order creation failed");
-
-      // 3. Razorpay Options
-      const options = {
-        key: razorpayKeyId,
-        amount: orderData.amount,
-        currency: "INR",
-        name: "SkyBooker Flights",
-        description: `Booking Flight ${flight.validatingAirlineCodes[0]}`,
-        order_id: orderData.id,
-        
-        // 4. Success Handler
-        handler: async function (response) {
-          try {
-            const verifyRes = await apiRequest('/api/payment/verify', {
-              auth: true,
-              method: 'POST',
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-              }),
-            });
-            const verifyData = await verifyRes.json();
-
-            if (!verifyRes.ok) {
-              throw new Error(verifyData.message || 'Payment verification failed');
-            }
-
-            await saveBookingToDB(response);
-          } catch (error) {
-            console.error('Payment verification error:', error);
-            alert(error.message || 'Payment verification failed');
-          }
-        },
-        prefill: {
-          name: userData.name,
-          email: userData.email,
-          contact: userData.phone
-        },
-        theme: { color: "#008cff" }
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-
-    } catch (error) {
-      console.error("Payment Error:", error);
-      alert(error.message || "Payment initiation failed.");
-    }
+      return (
+        <button
+          type="button"
+          key={seatId}
+          className={`seat ${isSelected ? 'selected' : ''} ${isOccupied ? 'occupied' : ''}`}
+          onClick={() => !isOccupied && setSelectedSeat(seatId)}
+          aria-pressed={isSelected}
+          aria-label={`Seat ${seatId}${isOccupied ? ', unavailable' : ''}`}
+          disabled={isOccupied}
+        >
+          {seatId}
+        </button>
+      );
+    }));
   };
 
-  // --- 💾 SAVE TO DATABASE ---
   const saveBookingToDB = async (payment) => {
     const bookingData = {
       passengerName: userData.name,
       email: userData.email,
       phone: userData.phone,
       flightInfo: {
-        airline: flight.validatingAirlineCodes[0],
-        flightNumber: `${flight.itineraries[0].segments[0].carrierCode}-${flight.itineraries[0].segments[0].number}`,
-        from: flight.itineraries[0].segments[0].departure.iataCode,
-        to: flight.itineraries[0].segments[0].arrival.iataCode,
-        price: flight.price.total,
-        date: flight.itineraries[0].segments[0].departure.at.split('T')[0],
-        seatNumber: selectedSeat // 🔥 Selected seat save kar rahe hain
+        airline: carrier,
+        flightNumber,
+        from: firstSegment.departure?.iataCode,
+        to: lastSegment.arrival?.iataCode,
+        price,
+        date: firstSegment.departure?.at?.split('T')[0],
+        seatNumber: selectedSeat,
       },
       payment,
     };
@@ -163,109 +103,169 @@ const Booking = () => {
     const response = await apiRequest('/api/bookings', {
       auth: true,
       method: 'POST',
-      body: JSON.stringify(bookingData)
+      body: JSON.stringify(bookingData),
     });
-
     const data = await response.json();
 
-    if (response.ok) {
-      // Success Alert & Redirect
-      alert(`🎉 Success! Your seat ${selectedSeat} is confirmed.`);
-      navigate('/my-bookings');
+    if (!response.ok) throw new Error(data.message || 'Unable to save booking');
+    navigate('/my-bookings', { state: { booked: true } });
+  };
+
+  const handlePayment = async (event) => {
+    event.preventDefault();
+    const token = localStorage.getItem('token');
+
+    if (!storedUser || !token) {
+      navigate('/login');
+      return;
+    }
+    if (!selectedSeat) {
+      document.getElementById('seat-map')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (!window.Razorpay || !razorpayKeyId) {
+      window.alert('Payment checkout is not configured. Please contact support.');
       return;
     }
 
-    throw new Error(data.message || 'Unable to save booking');
+    setProcessing(true);
+    try {
+      const orderResponse = await apiRequest('/api/payment/orders', {
+        auth: true,
+        method: 'POST',
+        body: JSON.stringify({ amount: price }),
+      });
+      const order = await orderResponse.json();
+      if (!orderResponse.ok) throw new Error(order.message || 'Order creation failed');
+
+      const checkout = new window.Razorpay({
+        key: razorpayKeyId,
+        amount: order.amount,
+        currency: 'INR',
+        name: 'SkyBooker',
+        description: `${flightNumber} · ${firstSegment.departure?.iataCode} to ${lastSegment.arrival?.iataCode}`,
+        order_id: order.id,
+        prefill: { name: userData.name, email: userData.email, contact: userData.phone },
+        theme: { color: '#246bfd' },
+        modal: { ondismiss: () => setProcessing(false) },
+        handler: async (payment) => {
+          try {
+            const verifyResponse = await apiRequest('/api/payment/verify', {
+              auth: true,
+              method: 'POST',
+              body: JSON.stringify(payment),
+            });
+            const verification = await verifyResponse.json();
+            if (!verifyResponse.ok) throw new Error(verification.message || 'Payment verification failed');
+            await saveBookingToDB(payment);
+          } catch (error) {
+            window.alert(error.message || 'Payment verification failed');
+            setProcessing(false);
+          }
+        },
+      });
+
+      checkout.open();
+    } catch (error) {
+      window.alert(error.message || 'Payment initiation failed.');
+      setProcessing(false);
+    }
   };
 
-  // --- 🖥️ UI RENDER ---
   return (
-    <div className="container mt-5 mb-5">
-      <div className="row g-4">
-        
-        {/* Left Side: Flight Summary */}
-        <div className="col-md-4">
-          <div className="card shadow-sm border-0">
-            <div className="card-header bg-primary text-white py-3">
-              <h5 className="mb-0 fw-bold">✈️ Flight Summary</h5>
-            </div>
-            <div className="card-body">
-              <p className="mb-1 text-muted small">AIRLINE</p>
-              <h6 className="fw-bold">{flight.validatingAirlineCodes[0]} Airlines</h6>
-              <hr />
-              <div className="d-flex justify-content-between">
-                <div>
-                  <p className="mb-1 text-muted small">FROM</p>
-                  <h4 className="fw-bold">{flight.itineraries[0].segments[0].departure.iataCode}</h4>
-                </div>
-                <div className="text-end">
-                  <p className="mb-1 text-muted small">TO</p>
-                  <h4 className="fw-bold">{flight.itineraries[0].segments[0].arrival.iataCode}</h4>
-                </div>
-              </div>
-              <hr />
-              <div className="d-flex justify-content-between align-items-center mt-3">
-                <span className="text-muted">Total Price</span>
-                <h3 className="text-primary fw-bold mb-0">₹{price}</h3>
-              </div>
-            </div>
-          </div>
+    <div className="booking-page page-shell">
+      <button type="button" className="back-link" onClick={() => navigate(-1)}><FaArrowLeft /> Back to flights</button>
+
+      <div className="checkout-heading">
+        <div>
+          <div className="eyebrow"><span /> Secure checkout</div>
+          <h1>Complete your booking</h1>
+          <p>Your fare is ready. Choose a seat and add the traveler details.</p>
         </div>
+        <div className="checkout-steps" aria-label="Checkout progress">
+          <span className="is-complete"><i><FaCheck /></i>Flight</span>
+          <b />
+          <span className="is-current"><i>2</i>Traveler</span>
+          <b />
+          <span><i>3</i>Payment</span>
+        </div>
+      </div>
 
-        {/* Right Side: Seat & Form */}
-        <div className="col-md-8">
-          
-          {/* 1. SEAT SELECTION BOX */}
-          <div className="card shadow-sm border-0 mb-4">
-            <div className="card-header bg-white py-3">
-              <h5 className="mb-0 fw-bold">💺 Select Your Seat</h5>
+      <div className="booking-layout">
+        <aside className="booking-summary">
+          <div className="summary-card">
+            <div className="summary-head">
+              <div className="airline-mark airline-mark-light">{carrier}</div>
+              <div><strong>{carrier} Airlines</strong><span>{flightNumber}</span></div>
+              <span className="verified-badge"><FaCheckCircle /> Verified</span>
             </div>
-            <div className="card-body text-center">
-              <div className="plane-map p-3">
-                <div className="mb-3 text-muted small fw-bold tracking-wide">FRONT OF PLANE (COCKPIT)</div>
-                {renderSeats()} {/* Seats Yahan Dikhengi */}
-                
-                <div className="mt-4 d-flex justify-content-center gap-4 text-small">
-                  <div className="d-flex align-items-center gap-2"><div className="seat" style={{width:20, height:20}}></div> Available</div>
-                  <div className="d-flex align-items-center gap-2"><div className="seat selected" style={{width:20, height:20}}></div> Selected</div>
-                </div>
 
-                <p className="mt-3 fw-bold text-primary border p-2 rounded bg-light d-inline-block px-4">
-                  {selectedSeat ? `Selected Seat: ${selectedSeat}` : "Please tap a seat to select"}
-                </p>
+            <div className="summary-route">
+              <div><strong>{formatTime(firstSegment.departure?.at)}</strong><span>{firstSegment.departure?.iataCode}</span></div>
+              <div><FaPlane /><span>{segments.length > 1 ? `${segments.length - 1} stop` : 'Non-stop'}</span></div>
+              <div><strong>{formatTime(lastSegment.arrival?.at)}</strong><span>{lastSegment.arrival?.iataCode}</span></div>
+            </div>
+
+            <div className="summary-details">
+              <span><FaClock /> {itinerary.duration?.replace('PT', '').toLowerCase() || 'Flight duration'}</span>
+              <span><FaSuitcaseRolling /> Cabin bag included</span>
+            </div>
+
+            <div className="summary-total">
+              <div><span>Total fare</span><small>Taxes included</small></div>
+              <strong>₹{Number(price).toLocaleString('en-IN')}</strong>
+            </div>
+          </div>
+          <div className="secure-note"><FaShieldAlt /><div><strong>Secure by design</strong><span>Payment is verified before your booking is stored.</span></div></div>
+        </aside>
+
+        <div className="booking-content">
+          <section className="checkout-card" id="seat-map">
+            <div className="checkout-card-head">
+              <div><span className="step-number">1</span><div><h2>Choose your seat</h2><p>Select one available economy seat.</p></div></div>
+              {selectedSeat && <span className="selection-pill"><FaCheck /> Seat {selectedSeat}</span>}
+            </div>
+
+            <div className="seat-cabin">
+              <div className="cockpit-label"><FaPlane /> Front of aircraft</div>
+              <div className="seat-column-labels" aria-hidden="true"><span>A</span><span>B</span><span>C</span><i /><span>D</span><span>E</span><span>F</span></div>
+              <div className="seat-grid">{renderSeats()}</div>
+              <div className="seat-legend">
+                <span><i className="seat-demo" /> Available</span>
+                <span><i className="seat-demo is-selected" /> Selected</span>
+                <span><i className="seat-demo is-occupied" /> Unavailable</span>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* 2. PASSENGER FORM */}
-          <div className="card shadow-sm border-0">
-            <div className="card-header bg-white py-3">
-              <h5 className="mb-0 fw-bold">📝 Passenger Details</h5>
+          <section className="checkout-card">
+            <div className="checkout-card-head">
+              <div><span className="step-number">2</span><div><h2>Traveler details</h2><p>Use the name shown on the traveler's government ID.</p></div></div>
             </div>
-            <div className="card-body p-4">
-              <form onSubmit={handlePayment}>
-                <div className="row g-3">
-                  <div className="col-md-12">
-                    <label className="form-label fw-bold small text-muted" htmlFor="passenger-name">FULL NAME</label>
-                    <input id="passenger-name" type="text" name="name" className="form-control form-control-lg" placeholder="As per Aadhaar" required onChange={handleChange} />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label fw-bold small text-muted" htmlFor="passenger-email">EMAIL ADDRESS</label>
-                    <input id="passenger-email" type="email" name="email" className="form-control form-control-lg" placeholder="name@example.com" required onChange={handleChange} />
-                  </div>
-                  <div className="col-md-6">
-                    <label className="form-label fw-bold small text-muted" htmlFor="passenger-phone">PHONE NUMBER</label>
-                    <input id="passenger-phone" type="tel" name="phone" className="form-control form-control-lg" placeholder="+91 98765 43210" required minLength={7} onChange={handleChange} />
-                  </div>
-                </div>
-                
-                <button type="submit" className="btn btn-primary w-100 btn-lg mt-4 py-3 fw-bold shadow">
-                  CONFIRM SEAT & PAY ₹{price}
+
+            <form className="traveler-form" onSubmit={handlePayment}>
+              <label className="form-field form-field-full" htmlFor="passenger-name">
+                <span>Full name</span>
+                <div><FaUser /><input id="passenger-name" name="name" value={userData.name} onChange={handleChange} placeholder="Suresh Mewada" required /></div>
+              </label>
+              <label className="form-field" htmlFor="passenger-email">
+                <span>Email address</span>
+                <div><FaEnvelope /><input id="passenger-email" type="email" name="email" value={userData.email} onChange={handleChange} placeholder="name@example.com" required /></div>
+              </label>
+              <label className="form-field" htmlFor="passenger-phone">
+                <span>Phone number</span>
+                <div><span className="field-prefix">+91</span><input id="passenger-phone" type="tel" name="phone" value={userData.phone} onChange={handleChange} placeholder="98765 43210" minLength={7} required /></div>
+              </label>
+
+              <div className="checkout-action form-field-full">
+                <div className="payment-assurance"><FaLock /><span><strong>Encrypted checkout</strong><small>Powered by Razorpay</small></span></div>
+                <button type="submit" className="button button-primary payment-button" disabled={processing || !selectedSeat}>
+                  <FaCreditCard /> {processing ? 'Preparing payment…' : `Pay ₹${Number(price).toLocaleString('en-IN')}`}
                 </button>
-              </form>
-            </div>
-          </div>
-
+              </div>
+              {!selectedSeat && <p className="seat-reminder form-field-full">Choose a seat above to unlock secure payment.</p>}
+            </form>
+          </section>
         </div>
       </div>
     </div>

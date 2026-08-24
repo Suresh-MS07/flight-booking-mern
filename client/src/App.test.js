@@ -10,7 +10,8 @@ jest.mock('react-router-dom', () => {
     Routes: passThrough,
     Route: ({ path, element }) => (path === '/' ? element : null),
     Link: ({ children, to, ...props }) => React.createElement('a', { href: to, ...props }, children),
-    useLocation: () => ({ state: null }),
+    NavLink: ({ children, to, end, ...props }) => React.createElement('a', { href: to, 'data-end': end ? 'true' : undefined, ...props }, children),
+    useLocation: () => ({ pathname: '/', state: null }),
     useNavigate: () => jest.fn(),
     useSearchParams: () => [new URLSearchParams()],
   };
@@ -18,6 +19,6 @@ jest.mock('react-router-dom', () => {
 
 test('renders the SkyBooker landing page', () => {
   render(<App />);
-  expect(screen.getByRole('heading', { name: /make your travel dreams reality/i }))
+  expect(screen.getByRole('heading', { name: /where will your next story begin/i }))
     .toBeInTheDocument();
 });

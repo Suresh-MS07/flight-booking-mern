@@ -1,107 +1,82 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { FaEnvelope, FaLock, FaArrowRight } from 'react-icons/fa';
+import { Link, useNavigate } from 'react-router-dom';
+import { FaArrowRight, FaCheck, FaEnvelope, FaLock, FaPlaneDeparture, FaShieldAlt } from 'react-icons/fa';
 import { apiRequest } from '../config/api';
-import '../App.css';
 
 const Login = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: '', password: '' });
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleChange = (event) => {
+    setFormData((current) => ({ ...current, [event.target.name]: event.target.value }));
+    setError('');
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setSubmitting(true);
+    setError('');
+
     try {
       const response = await apiRequest('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
       });
       const data = await response.json();
-      if (response.ok) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        alert("Welcome back!");
-        window.location.href = "/";
-      } else {
-        alert(data.message);
-      }
-    } catch {
-      alert("Login Failed");
+      if (!response.ok) throw new Error(data.message || 'Email or password is incorrect.');
+
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      navigate('/');
+      window.location.reload();
+    } catch (requestError) {
+      setError(requestError.message || 'Login failed. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <div className="auth-wrapper">
-      
-      {/* LEFT SIDE: Image */}
-      <div className="auth-image-side" aria-hidden="true">
-        <div className="auth-quote">
-          <h2>Explore the <br/> Unseen World.</h2>
-          <p>Login to access exclusive flight deals and manage your trips.</p>
+    <div className="auth-page">
+      <section className="auth-story" aria-hidden="true">
+        <div className="auth-story-orbit"><FaPlaneDeparture /></div>
+        <div className="auth-story-copy">
+          <span className="auth-brand-label"><FaPlaneDeparture /> SkyBooker</span>
+          <h2>Your whole journey, one login away.</h2>
+          <p>Return to saved tickets, verified payments, and every upcoming trip.</p>
+          <ul><li><FaCheck /> User-scoped booking history</li><li><FaCheck /> Instant ticket confirmation</li><li><FaCheck /> Secure Razorpay checkout</li></ul>
         </div>
-      </div>
+        <div className="auth-proof"><FaShieldAlt /><span><strong>Privacy first</strong><small>Your trips stay tied to your account.</small></span></div>
+      </section>
 
-      {/* RIGHT SIDE: Form */}
-      <div className="auth-form-side">
+      <section className="auth-form-panel">
         <div className="auth-box">
-          <div className="mb-5">
-            <h1 className="fw-bold">Welcome Back! 👋</h1>
-            <p className="text-muted">Please enter your details to sign in.</p>
-          </div>
+          <div className="auth-heading"><span className="section-kicker">Welcome back</span><h1>Sign in to SkyBooker</h1><p>Enter your details to continue your journey.</p></div>
 
           <form onSubmit={handleSubmit}>
-            <div className="mb-4">
-              <label className="form-label fw-bold text-muted small" htmlFor="login-email">EMAIL ADDRESS</label>
-              <div className="input-group">
-                <span className="input-group-text"><FaEnvelope /></span>
-                <input 
-                  type="email" 
-                  id="login-email"
-                  name="email" 
-                  className="form-control pro-auth-input" 
-                  placeholder="name@example.com" 
-                  onChange={handleChange} 
-                  required 
-                />
-              </div>
-            </div>
+            <label className="form-field form-field-full" htmlFor="login-email">
+              <span>Email address</span>
+              <div><FaEnvelope /><input id="login-email" type="email" name="email" value={formData.email} placeholder="name@example.com" autoComplete="email" onChange={handleChange} required /></div>
+            </label>
+            <label className="form-field form-field-full" htmlFor="login-password">
+              <span>Password</span>
+              <div><FaLock /><input id="login-password" type="password" name="password" value={formData.password} placeholder="Enter your password" autoComplete="current-password" onChange={handleChange} required /></div>
+            </label>
 
-            <div className="mb-4">
-              <label className="form-label fw-bold text-muted small" htmlFor="login-password">PASSWORD</label>
-              <div className="input-group">
-                <span className="input-group-text"><FaLock /></span>
-                <input 
-                  type="password" 
-                  id="login-password"
-                  name="password" 
-                  className="form-control pro-auth-input" 
-                  placeholder="••••••••" 
-                  onChange={handleChange} 
-                  required 
-                />
-              </div>
-            </div>
+            {error && <p className="auth-error" role="alert">{error}</p>}
 
-            <div className="mb-4">
-              <div className="form-check">
-                <input className="form-check-input" type="checkbox" id="remember" />
-                <label className="form-check-label text-muted" htmlFor="remember">Remember me</label>
-              </div>
-            </div>
-
-            <button className="btn w-100 auth-btn mb-4">
-              Sign In <FaArrowRight className="ms-2" />
+            <button className="button button-primary auth-submit" type="submit" disabled={submitting}>
+              {submitting ? 'Signing in…' : 'Sign in'} {!submitting && <FaArrowRight />}
             </button>
           </form>
 
-          <p className="text-center text-muted">
-            Don't have an account? <Link to="/register" className="fw-bold text-primary text-decoration-none">Create free account</Link>
-          </p>
+          <p className="auth-switch">New to SkyBooker? <Link to="/register">Create a free account</Link></p>
+          <div className="auth-secure"><FaLock /> Your credentials are encrypted in transit.</div>
         </div>
-      </div>
+      </section>
     </div>
   );
 };
