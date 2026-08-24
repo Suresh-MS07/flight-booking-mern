@@ -1,9 +1,16 @@
 const express = require('express');
 const Amadeus = require('amadeus');
+const { buildEstimatedFlights } = require('../services/estimatedFlights');
 
 const router = express.Router();
 const iataPattern = /^[A-Z]{3}$/;
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+
+const sendEstimatedFlights = (res, search) => {
+  res.set('X-Flight-Data-Source', 'estimated');
+  res.set('Cache-Control', 'private, max-age=300');
+  res.json(buildEstimatedFlights(search));
+};
 
 router.get('/search', async (req, res) => {
   const from = String(req.query.from || '').trim().toUpperCase();
@@ -21,7 +28,7 @@ router.get('/search', async (req, res) => {
   }
 
   if (!process.env.AMADEUS_CLIENT_ID || !process.env.AMADEUS_CLIENT_SECRET) {
-    res.status(503).json({ message: 'Flight search is not configured' });
+    sendEstimatedFlights(res, { from, to, date });
     return;
   }
 
@@ -47,10 +54,11 @@ router.get('/search', async (req, res) => {
       },
     }));
 
-    res.json(flights);
+    res.set('X-Flight-Data-Source', 'live');
+    res.json(flights.map((flight) => ({ ...flight, source: 'live', bookable: true })));
   } catch (error) {
     console.error(`Flight search failed: ${error.message}`);
-    res.status(502).json({ message: 'Flight provider is temporarily unavailable' });
+    sendEstimatedFlights(res, { from, to, date });
   }
 });
 

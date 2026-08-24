@@ -6,7 +6,7 @@ SkyBooker is a full-stack MERN flight-booking application that searches live fli
 
 ## Engineering highlights
 
-- Live flight search through the Amadeus API with configurable INR conversion
+- Live flight search through the Amadeus API with clearly marked, non-bookable estimates during provider outages
 - JWT authentication with bcrypt password hashing and user-scoped booking history
 - Razorpay order creation and constant-time signature verification
 - Responsive React booking flow with seat selection and boarding-pass UI
@@ -87,6 +87,8 @@ Use sandbox credentials for development. Never commit `.env` files or secret key
 | `POST` | `/api/bookings` | Yes | Save a verified booking |
 | `POST` | `/api/payment/orders` | Yes | Create a Razorpay order |
 | `POST` | `/api/payment/verify` | Yes | Verify the checkout signature |
+
+Flight search returns live, bookable Amadeus inventory whenever the provider is available. During an outage or missing local credentials, the API returns deterministic estimates with `source: "estimated"`, `bookable: false`, and the `X-Flight-Data-Source: estimated` response header. This keeps the results experience testable without presenting demo inventory as purchasable fares.
 
 Authenticated endpoints expect `Authorization: Bearer <token>`.
 

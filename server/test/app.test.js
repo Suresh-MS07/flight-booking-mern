@@ -46,3 +46,31 @@ test('booking data requires authentication', async () => {
   assert.equal(response.status, 401);
   assert.equal(body.message, 'Authentication required');
 });
+
+test('flight search stays useful with clearly marked estimates when the provider is unavailable', async () => {
+  const originalClientId = process.env.AMADEUS_CLIENT_ID;
+  const originalClientSecret = process.env.AMADEUS_CLIENT_SECRET;
+  const departureDate = new Date(Date.now() + (24 * 60 * 60 * 1000)).toISOString().slice(0, 10);
+
+  delete process.env.AMADEUS_CLIENT_ID;
+  delete process.env.AMADEUS_CLIENT_SECRET;
+
+  try {
+    const response = await fetch(`${baseUrl}/api/flights/search?from=DEL&to=BOM&date=${departureDate}`);
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('x-flight-data-source'), 'estimated');
+    assert.equal(body.length, 6);
+    assert.equal(body[0].source, 'estimated');
+    assert.equal(body[0].bookable, false);
+    assert.equal(body[0].itineraries[0].segments[0].departure.iataCode, 'DEL');
+    assert.equal(body[0].itineraries[0].segments[0].arrival.iataCode, 'BOM');
+  } finally {
+    if (originalClientId === undefined) delete process.env.AMADEUS_CLIENT_ID;
+    else process.env.AMADEUS_CLIENT_ID = originalClientId;
+
+    if (originalClientSecret === undefined) delete process.env.AMADEUS_CLIENT_SECRET;
+    else process.env.AMADEUS_CLIENT_SECRET = originalClientSecret;
+  }
+});

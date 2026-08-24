@@ -5,6 +5,7 @@ import {
   FaCheckCircle,
   FaClock,
   FaFilter,
+  FaInfoCircle,
   FaPlane,
   FaShieldAlt,
   FaSuitcaseRolling,
@@ -42,6 +43,7 @@ const Search = () => {
   const [flights, setFlights] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isEstimated, setIsEstimated] = useState(false);
   const [sortBy, setSortBy] = useState('best');
 
   const from = (searchParams.get('from') || '').toUpperCase();
@@ -54,6 +56,8 @@ const Search = () => {
     const fetchFlights = async () => {
       setLoading(true);
       setError('');
+      setFlights([]);
+      setIsEstimated(false);
 
       if (!from || !to || !date) {
         setError('Your search is missing a route or departure date.');
@@ -67,8 +71,14 @@ const Search = () => {
         const data = await response.json();
 
         if (!active) return;
-        if (response.ok) setFlights(Array.isArray(data) ? data : []);
-        else setError(data.message || 'We could not load fares for this route.');
+        if (response.ok) {
+          const nextFlights = Array.isArray(data) ? data : [];
+          setFlights(nextFlights);
+          setIsEstimated(
+            response.headers.get('X-Flight-Data-Source') === 'estimated'
+            || nextFlights.some((flight) => flight.source === 'estimated'),
+          );
+        } else setError(data.message || 'We could not load fares for this route.');
       } catch {
         if (active) setError('The flight service is taking longer than expected. Please try again.');
       } finally {
@@ -111,7 +121,7 @@ const Search = () => {
       <div className="results-toolbar">
         <div>
           <strong>{loading ? 'Finding the right flights' : `${flights.length} flight${flights.length === 1 ? '' : 's'} found`}</strong>
-          <span>Prices include estimated taxes and fees</span>
+          <span>{isEstimated ? 'Showing non-bookable estimates while live inventory reconnects' : 'Prices include estimated taxes and fees'}</span>
         </div>
         <div className="sort-control" aria-label="Sort flights">
           <FaFilter />
@@ -153,6 +163,16 @@ const Search = () => {
         <section className="flight-results" aria-live="polite" aria-busy={loading}>
           {loading && <><FlightSkeleton /><FlightSkeleton /><FlightSkeleton /></>}
 
+          {!loading && !error && isEstimated && (
+            <div className="inventory-notice" role="status">
+              <FaInfoCircle />
+              <div>
+                <strong>Live inventory is temporarily unavailable</strong>
+                <span>These clearly marked estimates keep route comparison useful. Live booking returns when the provider reconnects.</span>
+              </div>
+            </div>
+          )}
+
           {!loading && error && (
             <div className="state-card">
               <span className="state-icon">!</span>
@@ -187,6 +207,7 @@ const Search = () => {
                   <div>
                     <strong>{carrierCode} Airlines</strong>
                     <span>{firstSegment.carrierCode || carrierCode}-{firstSegment.number || '—'}</span>
+                    {flight.source === 'estimated' && <em className="inventory-badge">Estimated</em>}
                   </div>
                 </div>
 
@@ -214,8 +235,9 @@ const Search = () => {
                     type="button"
                     className="button button-primary button-small"
                     onClick={() => navigate('/book', { state: { flight } })}
+                    disabled={flight.bookable === false}
                   >
-                    Select <FaArrowRight />
+                    {flight.bookable === false ? 'Estimate only' : <><span>Select</span> <FaArrowRight /></>}
                   </button>
                 </div>
               </article>

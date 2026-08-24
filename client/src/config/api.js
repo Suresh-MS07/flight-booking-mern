@@ -1,4 +1,8 @@
-export const API_BASE_URL = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000')
+const defaultApiBaseUrl = process.env.NODE_ENV === 'production'
+  ? 'https://flight-api-suresh.onrender.com'
+  : 'http://localhost:5000';
+
+export const API_BASE_URL = (process.env.REACT_APP_API_BASE_URL || defaultApiBaseUrl)
   .replace(/\/$/, '');
 
 export const apiRequest = (path, options = {}) => {

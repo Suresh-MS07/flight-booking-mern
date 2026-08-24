@@ -1228,6 +1228,39 @@ p {
   gap: 13px;
 }
 
+.inventory-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border: 1px solid #f0d59c;
+  border-radius: 16px;
+  padding: 15px 18px;
+  color: #725216;
+  background: #fff9eb;
+}
+
+.inventory-notice > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: #d79516;
+}
+
+.inventory-notice > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.inventory-notice strong {
+  font-size: .8rem;
+}
+
+.inventory-notice span {
+  color: #896b32;
+  font-size: .7rem;
+  line-height: 1.5;
+}
+
 .result-card {
   display: grid;
   min-height: 172px;
@@ -1286,6 +1319,20 @@ p {
   margin-top: 3px;
   color: #8491a3;
   font-size: .68rem;
+}
+
+.result-airline .inventory-badge {
+  align-self: flex-start;
+  border-radius: 999px;
+  margin-top: 7px;
+  padding: 3px 7px;
+  color: #8a641d;
+  background: #fff4d8;
+  font-size: .57rem;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
 }
 
 .result-route {
