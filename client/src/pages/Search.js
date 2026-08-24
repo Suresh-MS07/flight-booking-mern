@@ -11,6 +11,7 @@ import {
   FaSuitcaseRolling,
 } from 'react-icons/fa';
 import { apiRequest } from '../config/api';
+import { buildEstimatedFlights } from '../utils/estimatedFlights';
 
 const formatTime = (isoString = '') => {
   const time = isoString.split('T')[1];
@@ -65,6 +66,12 @@ const Search = () => {
         return;
       }
 
+      const showEstimatedFlights = () => {
+        if (!active) return;
+        setFlights(buildEstimatedFlights({ from, to, date }));
+        setIsEstimated(true);
+      };
+
       try {
         const query = new URLSearchParams({ from, to, date });
         const response = await apiRequest(`/api/flights/search?${query.toString()}`);
@@ -78,9 +85,11 @@ const Search = () => {
             response.headers.get('X-Flight-Data-Source') === 'estimated'
             || nextFlights.some((flight) => flight.source === 'estimated'),
           );
+        } else if ([502, 503].includes(response.status)) {
+          showEstimatedFlights();
         } else setError(data.message || 'We could not load fares for this route.');
       } catch {
-        if (active) setError('The flight service is taking longer than expected. Please try again.');
+        showEstimatedFlights();
       } finally {
         if (active) setLoading(false);
       }
