@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { apiRequest } from '../config/api';
 import '../App.css'; // CSS import zaroori hai seat styling ke liye
+
+const razorpayKeyId = process.env.REACT_APP_RAZORPAY_KEY_ID;
 
 const Booking = () => {
   const location = useLocation();
@@ -39,14 +42,17 @@ const Booking = () => {
             const style = col === 'D' ? { marginLeft: '25px' } : {};
 
             return (
-              <div 
+              <button
+                type="button"
                 key={seatId} 
                 className={seatClass} 
                 style={style}
                 onClick={() => setSelectedSeat(seatId)}
+                aria-pressed={isSelected}
+                aria-label={`Seat ${seatId}`}
               >
                 {seatId}
-              </div>
+              </button>
             );
           })
         ))}
@@ -60,7 +66,8 @@ const Booking = () => {
 
     // 1. Validation Checks
     const user = JSON.parse(localStorage.getItem('user'));
-    if (!user) {
+    const token = localStorage.getItem('token');
+    if (!user || !token) {
       alert("Please Login first to book tickets!");
       navigate('/login');
       return;
@@ -69,21 +76,25 @@ const Booking = () => {
       alert("Please select a seat first! 💺");
       return;
     }
+    if (!window.Razorpay || !razorpayKeyId) {
+      alert('Payment checkout is not configured. Please contact support.');
+      return;
+    }
 
     try {
       // 2. Order Create (Backend)
-      const orderRes = await fetch('https://flight-api-suresh.onrender.com/api/payment/orders', {
+      const orderRes = await apiRequest('/api/payment/orders', {
+        auth: true,
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount: price })
       });
       
       const orderData = await orderRes.json();
-      if (!orderRes.ok) throw new Error("Order creation failed");
+      if (!orderRes.ok) throw new Error(orderData.message || "Order creation failed");
 
       // 3. Razorpay Options
       const options = {
-        key: "rzp_test_RqRWpBjjhnRtKl", // Apni Test Key ID
+        key: razorpayKeyId,
         amount: orderData.amount,
         currency: "INR",
         name: "SkyBooker Flights",
@@ -92,22 +103,26 @@ const Booking = () => {
         
         // 4. Success Handler
         handler: async function (response) {
-          const verifyRes = await fetch('https://flight-api-suresh.onrender.com/api/payment/verify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-            }),
-          });
+          try {
+            const verifyRes = await apiRequest('/api/payment/verify', {
+              auth: true,
+              method: 'POST',
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              }),
+            });
+            const verifyData = await verifyRes.json();
 
-          const verifyData = await verifyRes.json();
+            if (!verifyRes.ok) {
+              throw new Error(verifyData.message || 'Payment verification failed');
+            }
 
-          if (verifyData.message === "Payment Verified Successfully") {
-            saveBookingToDB(); // Payment sahi hai, ab save karo
-          } else {
-            alert("Payment Verification Failed! ❌");
+            await saveBookingToDB(response);
+          } catch (error) {
+            console.error('Payment verification error:', error);
+            alert(error.message || 'Payment verification failed');
           }
         },
         prefill: {
@@ -123,12 +138,12 @@ const Booking = () => {
 
     } catch (error) {
       console.error("Payment Error:", error);
-      alert("Payment initiation failed. See console.");
+      alert(error.message || "Payment initiation failed.");
     }
   };
 
   // --- 💾 SAVE TO DATABASE ---
-  const saveBookingToDB = async () => {
+  const saveBookingToDB = async (payment) => {
     const bookingData = {
       passengerName: userData.name,
       email: userData.email,
@@ -141,20 +156,26 @@ const Booking = () => {
         price: flight.price.total,
         date: flight.itineraries[0].segments[0].departure.at.split('T')[0],
         seatNumber: selectedSeat // 🔥 Selected seat save kar rahe hain
-      }
+      },
+      payment,
     };
 
-    const response = await fetch('https://flight-api-suresh.onrender.com/api/bookings', {
+    const response = await apiRequest('/api/bookings', {
+      auth: true,
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(bookingData)
     });
+
+    const data = await response.json();
 
     if (response.ok) {
       // Success Alert & Redirect
       alert(`🎉 Success! Your seat ${selectedSeat} is confirmed.`);
       navigate('/my-bookings');
+      return;
     }
+
+    throw new Error(data.message || 'Unable to save booking');
   };
 
   // --- 🖥️ UI RENDER ---
@@ -225,16 +246,16 @@ const Booking = () => {
               <form onSubmit={handlePayment}>
                 <div className="row g-3">
                   <div className="col-md-12">
-                    <label className="form-label fw-bold small text-muted">FULL NAME</label>
-                    <input type="text" name="name" className="form-control form-control-lg" placeholder="As per Aadhaar" required onChange={handleChange} />
+                    <label className="form-label fw-bold small text-muted" htmlFor="passenger-name">FULL NAME</label>
+                    <input id="passenger-name" type="text" name="name" className="form-control form-control-lg" placeholder="As per Aadhaar" required onChange={handleChange} />
                   </div>
                   <div className="col-md-6">
-                    <label className="form-label fw-bold small text-muted">EMAIL ADDRESS</label>
-                    <input type="email" name="email" className="form-control form-control-lg" placeholder="name@example.com" required onChange={handleChange} />
+                    <label className="form-label fw-bold small text-muted" htmlFor="passenger-email">EMAIL ADDRESS</label>
+                    <input id="passenger-email" type="email" name="email" className="form-control form-control-lg" placeholder="name@example.com" required onChange={handleChange} />
                   </div>
                   <div className="col-md-6">
-                    <label className="form-label fw-bold small text-muted">PHONE NUMBER</label>
-                    <input type="tel" name="phone" className="form-control form-control-lg" placeholder="+91 98765 43210" required onChange={handleChange} />
+                    <label className="form-label fw-bold small text-muted" htmlFor="passenger-phone">PHONE NUMBER</label>
+                    <input id="passenger-phone" type="tel" name="phone" className="form-control form-control-lg" placeholder="+91 98765 43210" required minLength={7} onChange={handleChange} />
                   </div>
                 </div>
                 

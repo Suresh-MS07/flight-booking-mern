@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaUser, FaEnvelope, FaLock, FaArrowRight } from 'react-icons/fa';
+import { apiRequest } from '../config/api';
 import '../App.css';
 
 const Register = () => {
@@ -14,7 +15,7 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('https://flight-api-suresh.onrender.com/api/auth/register', {
+      const response = await apiRequest('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -26,7 +27,7 @@ const Register = () => {
       } else {
         alert(data.message);
       }
-    } catch (error) {
+    } catch {
       alert("Something went wrong");
     }
   };
@@ -35,7 +36,7 @@ const Register = () => {
     <div className="auth-wrapper">
       
       {/* LEFT SIDE: Image (Different Image for variety) */}
-      <div className="auth-image-side" style={{backgroundImage: "linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80')"}}>
+      <div className="auth-image-side" aria-hidden="true" style={{backgroundImage: "linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80')"}}>
         <div className="auth-quote">
           <h2>Start Your <br/> Journey Today.</h2>
           <p>Join SkyBooker and book flights with zero hidden fees.</p>
@@ -52,11 +53,12 @@ const Register = () => {
 
           <form onSubmit={handleSubmit}>
             <div className="mb-3">
-              <label className="form-label fw-bold text-muted small">FULL NAME</label>
+              <label className="form-label fw-bold text-muted small" htmlFor="register-name">FULL NAME</label>
               <div className="input-group">
                 <span className="input-group-text"><FaUser /></span>
                 <input 
                   type="text" 
+                  id="register-name"
                   name="name" 
                   className="form-control pro-auth-input" 
                   placeholder="John Doe" 
@@ -67,11 +69,12 @@ const Register = () => {
             </div>
 
             <div className="mb-3">
-              <label className="form-label fw-bold text-muted small">EMAIL ADDRESS</label>
+              <label className="form-label fw-bold text-muted small" htmlFor="register-email">EMAIL ADDRESS</label>
               <div className="input-group">
                 <span className="input-group-text"><FaEnvelope /></span>
                 <input 
                   type="email" 
+                  id="register-email"
                   name="email" 
                   className="form-control pro-auth-input" 
                   placeholder="name@example.com" 
@@ -82,14 +85,16 @@ const Register = () => {
             </div>
 
             <div className="mb-4">
-              <label className="form-label fw-bold text-muted small">PASSWORD</label>
+              <label className="form-label fw-bold text-muted small" htmlFor="register-password">PASSWORD</label>
               <div className="input-group">
                 <span className="input-group-text"><FaLock /></span>
                 <input 
                   type="password" 
+                  id="register-password"
                   name="password" 
                   className="form-control pro-auth-input" 
                   placeholder="••••••••" 
+                  minLength={8}
                   onChange={handleChange} 
                   required 
                 />

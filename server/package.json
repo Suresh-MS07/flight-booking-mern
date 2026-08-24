@@ -1,13 +1,15 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "description": "",
+  "description": "Secure Express API for the SkyBooker flight-booking application",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "node --test"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["express", "mongodb", "amadeus", "razorpay"],
+  "author": "Suresh Mewada",
   "license": "ISC",
   "dependencies": {
     "amadeus": "^11.0.0",
